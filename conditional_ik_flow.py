@@ -274,10 +274,24 @@ class ConditionalInverseKinematicsFlow:
     def normalize_data(self, positions: np.ndarray, joint_angles: np.ndarray):
         """数据标准化"""
         # 计算标准化参数
-        self.x_mean, self.x_std = positions[:, 0].mean(), positions[:, 0].std()
-        self.y_mean, self.y_std = positions[:, 1].mean(), positions[:, 1].std()
-        self.theta1_mean, self.theta1_std = joint_angles[:, 0].mean(), joint_angles[:, 0].std()
-        self.theta2_mean, self.theta2_std = joint_angles[:, 1].mean(), joint_angles[:, 1].std()
+        self.x_mean = positions[:, 0].mean()
+        self.x_std = positions[:, 0].std()
+        self.y_mean = positions[:, 1].mean()
+        self.y_std = positions[:, 1].std()
+        self.theta1_mean = joint_angles[:, 0].mean()
+        self.theta1_std = joint_angles[:, 0].std()
+        self.theta2_mean = joint_angles[:, 1].mean()
+        self.theta2_std = joint_angles[:, 1].std()
+        
+        # 确保标准差不为零
+        if self.x_std == 0:
+            self.x_std = 1.0
+        if self.y_std == 0:
+            self.y_std = 1.0
+        if self.theta1_std == 0:
+            self.theta1_std = 1.0
+        if self.theta2_std == 0:
+            self.theta2_std = 1.0
         
         # 标准化
         positions_norm = np.column_stack([
@@ -363,6 +377,32 @@ class ConditionalInverseKinematicsFlow:
         
         print("训练完成!")
         return losses
+    
+    def load_model(self, model_path: str = 'best_ik_flow_model.pth') -> bool:
+        """
+        加载已保存的模型
+        
+        Args:
+            model_path: 模型文件路径
+            
+        Returns:
+            bool: 是否成功加载模型
+        """
+        try:
+            # 加载模型状态字典
+            state_dict = torch.load(model_path, map_location=self.device)
+            self.flow_model.load_state_dict(state_dict)
+            
+            # 生成一些训练数据来计算标准化参数
+            print("   重新计算数据标准化参数...")
+            positions, joint_angles = self.generate_training_data(10000)
+            self.normalize_data(positions, joint_angles)
+            
+            print(f"   成功加载模型: {model_path}")
+            return True
+        except Exception as e:
+            print(f"   加载模型失败: {e}")
+            return False
     
     def inverse_kinematics(self, target_x: float, target_y: float, num_samples: int = 50) -> Tuple[float, float]:
         """使用训练好的模型计算逆运动学"""
@@ -454,7 +494,7 @@ def test_conditional_ik():
     plt.plot(losses)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('条件 Flow 训练损失曲线')
+    plt.title('Conditional Flow Training Loss Curve')
     plt.grid(True)
     plt.show()
     

@@ -71,9 +71,9 @@ class PlannerRobot:
         ax.set_aspect('equal', adjustable='box')
         ax.set_xlim(-self.total_reach * 1.1, self.total_reach * 1.1)
         ax.set_ylim(-self.total_reach * 1.1, self.total_reach * 1.1)
-        ax.set_xlabel("X 坐标 (X Coordinate)")
-        ax.set_ylabel("Y 坐标 (Y Coordinate)")
-        ax.set_title(f"2自由度平面机器人 (θ1={np.degrees(theta1):.1f}°, θ2={np.degrees(theta2):.1f}°)")
+        ax.set_xlabel("X Coordinate")
+        ax.set_ylabel("Y Coordinate")
+        ax.set_title(f"2-DOF Planar Robot (θ1={np.degrees(theta1):.1f}°, θ2={np.degrees(theta2):.1f}°)")
         ax.grid(True, alpha=0.3)
         
         # 计算关键点位置 (Calculate key point positions)
@@ -81,24 +81,24 @@ class PlannerRobot:
         
         # 绘制机器人 (Draw robot)
         # 基座 (Base)
-        ax.plot(x0, y0, 'ko', markersize=12, label='基座 (Base)')
+        ax.plot(x0, y0, 'ko', markersize=12)
         
         # 连杆1 (Link 1)
         ax.plot([x0, x1], [y0, y1], 'o-', lw=4, color='skyblue', 
-                markersize=10, markerfacecolor='blue', label='连杆1 (Link 1)')
+                markersize=10, markerfacecolor='blue')
         
         # 连杆2 (Link 2)
         ax.plot([x1, x2], [y1, y2], 'o-', lw=4, color='lightcoral', 
-                markersize=10, markerfacecolor='red', label='连杆2 (Link 2)')
+                markersize=10, markerfacecolor='red')
         
         # 末端执行器特殊标记 (Special marker for end-effector)
         ax.plot(x2, y2, 's', markersize=12, color='green', 
-                markerfacecolor='lightgreen', label='末端执行器 (End-effector)')
+                markerfacecolor='lightgreen')
         
         # 显示路径 (Show path if requested)
         if show_path and len(self.path_x) > 0:
             ax.plot(self.path_x, self.path_y, ':', lw=2, color='green', 
-                   alpha=0.7, label='末端轨迹 (End-effector Path)')
+                   alpha=0.7, label='End-effector Path')
         
         # 显示工作空间边界 (Show workspace boundary)
         circle_outer = plt.Circle((0, 0), self.total_reach, fill=False, 
@@ -108,7 +108,8 @@ class PlannerRobot:
         ax.add_patch(circle_outer)
         ax.add_patch(circle_inner)
         
-        ax.legend(loc='upper right')
+        if show_path and len(self.path_x) > 0:
+            ax.legend(loc='upper right')
         
         return fig, ax
     
@@ -131,9 +132,9 @@ class PlannerRobot:
         ax_theta1 = plt.axes([0.2, 0.1, 0.5, 0.03])
         ax_theta2 = plt.axes([0.2, 0.05, 0.5, 0.03])
         
-        slider_theta1 = Slider(ax_theta1, 'θ1 (度)', -180, 180, 
+        slider_theta1 = Slider(ax_theta1, 'θ1 (deg)', -180, 180, 
                               valinit=np.degrees(theta1_init), valstep=1)
-        slider_theta2 = Slider(ax_theta2, 'θ2 (度)', -180, 180, 
+        slider_theta2 = Slider(ax_theta2, 'θ2 (deg)', -180, 180, 
                               valinit=np.degrees(theta2_init), valstep=1)
         
         def update_plot(val):
@@ -149,7 +150,7 @@ class PlannerRobot:
             
             # 显示当前末端执行器位置 (Show current end-effector position)
             (x0, y0), (x1, y1), (x2, y2) = self.forward_kinematics(theta1, theta2)
-            ax.text(0.02, 0.98, f'末端位置: ({x2:.3f}, {y2:.3f})', 
+            ax.text(0.02, 0.98, f'End-effector Position: ({x2:.3f}, {y2:.3f})', 
                    transform=ax.transAxes, verticalalignment='top',
                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
@@ -178,18 +179,18 @@ class PlannerRobot:
         ax.set_aspect('equal', adjustable='box')
         ax.set_xlim(-self.total_reach * 1.1, self.total_reach * 1.1)
         ax.set_ylim(-self.total_reach * 1.1, self.total_reach * 1.1)
-        ax.set_xlabel("X 坐标 (X Coordinate)")
-        ax.set_ylabel("Y 坐标 (Y Coordinate)")
-        ax.set_title("2自由度平面机器人动画 (2-DOF Planar Robot Animation)")
+        ax.set_xlabel("X Coordinate")
+        ax.set_ylabel("Y Coordinate")
+        ax.set_title("2-DOF Planar Robot Animation")
         ax.grid(True, alpha=0.3)
         
         # 初始化绘图元素 (Initialize plot elements)
         link1_line, = ax.plot([], [], 'o-', lw=4, color='skyblue', 
-                             markersize=10, markerfacecolor='blue', label='连杆1 (Link 1)')
+                             markersize=10, markerfacecolor='blue', label='Robot Links')
         link2_line, = ax.plot([], [], 'o-', lw=4, color='lightcoral', 
-                             markersize=10, markerfacecolor='red', label='连杆2 (Link 2)')
-        path_line, = ax.plot([], [], ':', lw=2, color='green', label='末端轨迹 (End-effector Path)')
-        base_point, = ax.plot([0], [0], 'ko', markersize=12, label='基座 (Base)')
+                             markersize=10, markerfacecolor='red')
+        path_line, = ax.plot([], [], ':', lw=2, color='green', label='End-effector Path')
+        base_point, = ax.plot([0], [0], 'ko', markersize=12)
         
         # 重置路径 (Reset path)
         self.path_x, self.path_y = [], []
@@ -233,7 +234,7 @@ class PlannerRobot:
                 ani.save(save_path, writer='imagemagick', fps=1000/interval_ms)
             elif save_path.endswith('.mp4'):
                 ani.save(save_path, writer='ffmpeg', fps=1000/interval_ms)
-            print(f"动画已保存到: {save_path}")
+            print(f"Animation saved to: {save_path}")
         
         plt.show()
         return ani
@@ -264,14 +265,14 @@ if __name__ == "__main__":
     robot = PlannerRobot(L1=1.0, L2=0.8)
     
     # 示例1: 静态可视化 (Example 1: Static visualization)
-    print("示例1: 静态可视化")
+    print("Example 1: Static visualization")
     robot.visualize_static(np.pi/4, np.pi/6)
     plt.show()
     
     # 示例2: 交互式可视化 (Example 2: Interactive visualization)
-    print("示例2: 交互式可视化 - 使用滑块调节关节角度")
+    print("Example 2: Interactive visualization with sliders")
     robot.visualize_interactive()
     
     # 示例3: 动画 (Example 3: Animation)
-    print("示例3: 动画演示")
+    print("Example 3: Animation demo")
     robot.animate_motion(example_motion, total_frames=200, interval_ms=50)

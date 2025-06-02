@@ -27,27 +27,33 @@ def demo_basic_usage():
     print("\n2. 创建逆运动学求解器...")
     ik_solver = ConditionalInverseKinematicsFlow(robot, device=device)
     
-    # 4. 训练模型（使用较小的参数用于演示）
-    print("\n3. 训练 Flow 模型（这可能需要几分钟）...")
-    print("   注意：为了演示，使用较小的数据集和训练轮数")
-    print("   在实际应用中，建议使用更大的数据集和更多的训练轮数以获得更好的性能")
+    # 4. 尝试加载已保存的模型，如果没有则训练新模型
+    print("\n3. 尝试加载已保存的模型...")
+    model_loaded = ik_solver.load_model('best_ik_flow_model.pth')
     
-    losses = ik_solver.train(
-        num_samples=20000,  # 训练样本数
-        epochs=50,          # 训练轮数  
-        batch_size=512,     # 批大小
-        lr=1e-4            # 学习率
-    )
-    
-    # 5. 可视化训练过程
-    print("\n4. 可视化训练过程...")
-    plt.figure(figsize=(10, 6))
-    plt.plot(losses)
-    plt.xlabel('训练轮数 (Epochs)')
-    plt.ylabel('损失 (Loss)')
-    plt.title('Normalizing Flow 训练损失曲线')
-    plt.grid(True, alpha=0.3)
-    plt.show()
+    if not model_loaded:
+        print("\n   未找到已保存的模型，开始训练新模型...")
+        print("   注意：为了演示，使用较小的数据集和训练轮数")
+        print("   在实际应用中，建议使用更大的数据集和更多的训练轮数以获得更好的性能")
+        
+        losses = ik_solver.train(
+            num_samples=20000,  # 训练样本数
+            epochs=50,          # 训练轮数  
+            batch_size=512,     # 批大小
+            lr=1e-4            # 学习率
+        )
+        
+        # 5. 可视化训练过程
+        print("\n4. 可视化训练过程...")
+        plt.figure(figsize=(10, 6))
+        plt.plot(losses)
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Normalizing Flow Training Loss Curve')
+        plt.grid(True, alpha=0.3)
+        plt.show()
+    else:
+        print("   模型加载成功，跳过训练步骤")
     
     # 6. 测试逆运动学求解
     print("\n5. 测试逆运动学求解...")
@@ -89,16 +95,16 @@ def demo_basic_usage():
         
         # 可视化结果
         robot.visualize_static(theta1_pred, theta2_pred, ax=axes[i])
-        axes[i].plot(target_x, target_y, 'r*', markersize=20, label='目标位置')
-        axes[i].plot(x2, y2, 'g*', markersize=15, label='实际位置')
-        axes[i].set_title(f'{description}\n目标: ({target_x:.1f}, {target_y:.1f}) | 误差: {error:.4f}')
+        axes[i].plot(target_x, target_y, 'r*', markersize=20, label='Target Position')
+        axes[i].plot(x2, y2, 'g*', markersize=15, label='Actual Position')
+        axes[i].set_title(f'{description}\nTarget: ({target_x:.1f}, {target_y:.1f}) | Error: {error:.4f}')
         axes[i].legend(fontsize=8)
     
     # 隐藏多余的子图
     for i in range(len(test_targets), len(axes)):
         axes[i].set_visible(False)
     
-    plt.suptitle('基于 Normalizing Flow 的逆运动学求解结果', fontsize=16)
+    plt.suptitle('Inverse Kinematics Solution Results Based on Normalizing Flow', fontsize=16)
     plt.tight_layout()
     plt.show()
     
@@ -121,9 +127,16 @@ def demo_multiple_solutions():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     ik_solver = ConditionalInverseKinematicsFlow(robot, device=device)
     
-    # 快速训练（演示用）
-    print("\n快速训练模型...")
-    ik_solver.train(num_samples=15000, epochs=30, batch_size=512, lr=1e-4)
+    # 尝试加载已保存的模型
+    print("\n尝试加载已保存的模型...")
+    model_loaded = ik_solver.load_model('best_ik_flow_model.pth')
+    
+    if not model_loaded:
+        # 如果加载失败，则重新训练模型
+        print("\n未找到已保存的模型，开始重新训练...")
+        ik_solver.train(num_samples=15000, epochs=30, batch_size=512, lr=1e-4)
+    else:
+        print("   模型加载成功，跳过训练步骤")
     
     # 测试多解情况
     print("\n测试多解情况...")
@@ -154,12 +167,12 @@ def demo_multiple_solutions():
         if i < len(colors):
             robot.visualize_static(theta1, theta2, ax=ax1)
             ax1.plot([x0, x1], [y0, y1], 'o-', lw=3, color=colors[i], alpha=0.7, 
-                    label=f'解 {i+1}')
+                    label=f'solution {i+1}')
             ax1.plot([x1, x2], [y1, y2], 'o-', lw=3, color=colors[i], alpha=0.7)
     
     # 标记目标点
-    ax1.plot(target_x, target_y, 'k*', markersize=20, label='目标位置')
-    ax1.set_title(f'多个逆运动学解\n目标: ({target_x}, {target_y})')
+    ax1.plot(target_x, target_y, 'k*', markersize=20, label='Target Position')
+    ax1.set_title(f'Multiple IK Solutions\nTarget: ({target_x}, {target_y})')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
@@ -168,9 +181,9 @@ def demo_multiple_solutions():
     theta2_solutions = [np.degrees(sol[1]) for sol in solutions[:20]]
     
     ax2.scatter(theta1_solutions, theta2_solutions, c='red', alpha=0.6, s=50)
-    ax2.set_xlabel('θ1 (度)')
-    ax2.set_ylabel('θ2 (度)')
-    ax2.set_title('关节空间中的解分布')
+    ax2.set_xlabel('θ1 (deg)')
+    ax2.set_ylabel('θ2 (deg)')
+    ax2.set_title('Solution Distribution in Joint Space')
     ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
@@ -194,9 +207,16 @@ def demo_workspace_analysis():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     ik_solver = ConditionalInverseKinematicsFlow(robot, device=device)
     
-    # 训练模型
-    print("\n训练模型进行工作空间分析...")
-    ik_solver.train(num_samples=25000, epochs=40, batch_size=512, lr=1e-4)
+    # 尝试加载已保存的模型
+    print("\n尝试加载已保存的模型...")
+    model_loaded = ik_solver.load_model('best_ik_flow_model.pth')
+    
+    if not model_loaded:
+        # 如果加载失败，则重新训练模型
+        print("\n未找到已保存的模型，开始训练模型进行工作空间分析...")
+        ik_solver.train(num_samples=25000, epochs=40, batch_size=512, lr=1e-4)
+    else:
+        print("   模型加载成功，跳过训练步骤")
     
     # 生成工作空间网格
     print("\n分析工作空间可达性...")
@@ -238,18 +258,18 @@ def demo_workspace_analysis():
     # 可达性图
     im1 = ax1.imshow(reachable, extent=[-2, 2, -2, 2], origin='lower', 
                      cmap='RdYlGn', alpha=0.8)
-    ax1.set_xlabel('X 坐标')
-    ax1.set_ylabel('Y 坐标')
-    ax1.set_title('工作空间可达性分析')
+    ax1.set_xlabel('X coordinates')
+    ax1.set_ylabel('Y coordinates')
+    ax1.set_title('Workspace Reachability Analysis')
     ax1.grid(True, alpha=0.3)
     
     # 添加理论工作空间边界
     circle_outer = plt.Circle((0, 0), robot.L1 + robot.L2, fill=False, 
                              color='black', linestyle='--', linewidth=2, 
-                             label='理论外边界')
+                             label='Theoretical Outer Boundary')
     circle_inner = plt.Circle((0, 0), abs(robot.L1 - robot.L2), fill=False, 
                              color='black', linestyle='--', linewidth=2, 
-                             label='理论内边界')
+                             label='Theoretical Inner Boundary')
     ax1.add_patch(circle_outer)
     ax1.add_patch(circle_inner)
     ax1.legend()
@@ -258,14 +278,14 @@ def demo_workspace_analysis():
     errors_masked = np.ma.masked_where(reachable == 0, errors)
     im2 = ax2.imshow(errors_masked, extent=[-2, 2, -2, 2], origin='lower', 
                      cmap='plasma', alpha=0.8)
-    ax2.set_xlabel('X 坐标')
-    ax2.set_ylabel('Y 坐标')
-    ax2.set_title('逆运动学求解误差分布')
+    ax2.set_xlabel('X coordinates')
+    ax2.set_ylabel('Y coordinates')
+    ax2.set_title('Inverse Kinematics Solution Error Distribution')
     ax2.grid(True, alpha=0.3)
     
     # 添加颜色条
-    plt.colorbar(im1, ax=ax1, label='可达性 (1=可达, 0=不可达)')
-    plt.colorbar(im2, ax=ax2, label='位置误差')
+    plt.colorbar(im1, ax=ax1, label='Reachability (1=Reachable, 0=Unreachable)')
+    plt.colorbar(im2, ax=ax2, label='Position Error')
     
     plt.tight_layout()
     plt.show()
@@ -277,25 +297,25 @@ def demo_workspace_analysis():
     coverage = reachable_points / total_workspace_points if total_workspace_points > 0 else 0
     avg_error = np.mean(errors[reachable == 1]) if reachable_points > 0 else 0
     
-    print("\n工作空间分析结果:")
-    print(f"   - 理论工作空间点数: {total_workspace_points}")
-    print(f"   - 实际可达点数: {reachable_points}")
-    print(f"   - 覆盖率: {coverage:.2%}")
-    print(f"   - 平均求解误差: {avg_error:.6f}")
-    print(f"   - Flow 模型能够有效覆盖大部分工作空间")
+    print("\nWorkspace Analysis Results:")
+    print(f"   - Theoretical Workspace Points: {total_workspace_points}")
+    print(f"   - Actual Reachable Points: {reachable_points}")
+    print(f"   - Coverage: {coverage:.2%}")
+    print(f"   - Average Solution Error: {avg_error:.6f}")
+    print(f"   - Flow Model Can Effectively Cover Most of the Workspace")
 
 
 if __name__ == "__main__":
     # 运行演示
     try:
         # 基本使用演示
-        demo_basic_usage()
+        # demo_basic_usage()
         
         # 多解演示
         demo_multiple_solutions()
         
         # 工作空间分析
-        demo_workspace_analysis()
+        # demo_workspace_analysis()
         
         print("\n" + "=" * 50)
         print("演示完成！")
