@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from urdf import URDF  # 假设 urdf.py 文件在同一目录下
+from urdf import URDF
 import os
 import time
 
@@ -499,8 +499,6 @@ def main():
     else:
         print("没有处理任何数据")
 
-
-# 示例用法：
 
 if __name__ == "__main__":
     main()
